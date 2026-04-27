@@ -1,0 +1,6 @@
+output/
+*.pkr.hcl.lock
+*.sarif.json
+*.spdx.json
+*.xz
+.DS_Store
