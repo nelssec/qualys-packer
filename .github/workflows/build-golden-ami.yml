@@ -23,6 +23,11 @@ on:
           - evaluate-policy
           - scan-only
           - inventory-only
+      qualys_pod:
+        description: 'Qualys platform pod'
+        required: true
+        default: 'CA1'
+        type: string
 
 env:
   AWS_DEFAULT_REGION: us-east-1
@@ -43,11 +48,13 @@ jobs:
           packer build \
             -var-file=packer/${{ github.event.inputs.os_target || 'amazon-linux-2023' }}.pkrvars.hcl \
             -var "qualys_mode=${{ github.event.inputs.qualys_mode || 'get-report' }}" \
+            -var "qualys_pod=${{ github.event.inputs.qualys_pod || 'CA1' }}" \
             packer/
         env:
           QUALYS_ACCESS_TOKEN: ${{ secrets.QUALYS_ACCESS_TOKEN }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
 
       - name: Upload Scan Results
         uses: actions/upload-artifact@v4

@@ -102,7 +102,7 @@ variable "qualys_access_token" {
 
 variable "qualys_pod" {
   type        = string
-  default     = "US1"
+  default     = "CA1"
   description = "Qualys platform pod (US1, US2, US3, EU1, CA1, etc.)"
 }
 

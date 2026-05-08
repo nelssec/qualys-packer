@@ -10,7 +10,7 @@ ami_tags = {
   Purpose = "Golden AMI"
 }
 
-qualys_pod         = "US1"
+qualys_pod         = "CA1"
 qualys_mode        = "evaluate-policy"
 qualys_scan_types  = "os,sca,secret,fileinsight"
 qualys_policy_tags = "production"
