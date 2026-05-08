@@ -12,6 +12,6 @@ ami_tags = {
 
 qualys_pod         = "CA1"
 qualys_mode        = "evaluate-policy"
-qualys_scan_types  = "os,sca,secret,fileinsight"
+qualys_scan_types  = "pkg,fileinsight"
 qualys_policy_tags = "production"
 fail_on_audit      = true

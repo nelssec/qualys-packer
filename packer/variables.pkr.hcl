@@ -108,7 +108,7 @@ variable "qualys_pod" {
 
 variable "qualys_scan_types" {
   type        = string
-  default     = "os,sca,secret,fileinsight"
+  default     = "pkg,fileinsight"
   description = "Comma-separated QScanner scan types"
 }
 

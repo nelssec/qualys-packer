@@ -12,4 +12,4 @@ ami_tags = {
 
 qualys_pod        = "CA1"
 qualys_mode       = "get-report"
-qualys_scan_types = "os,sca,secret,fileinsight"
+qualys_scan_types = "pkg,fileinsight"
