@@ -14,7 +14,7 @@ pipeline {
         )
         string(
             name: 'QUALYS_POD',
-            defaultValue: 'US1',
+            defaultValue: 'CA1',
             description: 'Qualys platform pod'
         )
         string(
@@ -32,21 +32,28 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
+        stage('Install Packer') {
             steps {
-                checkout scm
+                sh '''
+                    if ! command -v packer &> /dev/null; then
+                        curl -sSfL https://releases.hashicorp.com/packer/1.11.2/packer_1.11.2_linux_amd64.zip -o /tmp/packer.zip
+                        unzip -o /tmp/packer.zip -d /tmp/packer-bin/
+                        rm /tmp/packer.zip
+                    fi
+                '''
             }
         }
 
         stage('Packer Init') {
             steps {
-                sh 'packer init packer/'
+                sh 'export PATH="/tmp/packer-bin:$PATH" && packer init packer/'
             }
         }
 
         stage('Build Golden AMI') {
             steps {
                 sh """
+                    export PATH="/tmp/packer-bin:\$PATH"
                     packer build \
                         -var-file=packer/${params.OS_TARGET}.pkrvars.hcl \
                         -var "qualys_mode=${params.QUALYS_MODE}" \
@@ -60,7 +67,9 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: 'output/**', allowEmptyArchive: true
+            node('') {
+                archiveArtifacts artifacts: 'output/**', allowEmptyArchive: true
+            }
         }
         success {
             echo 'Golden AMI built and scanned successfully'
