@@ -28,6 +28,7 @@ pipeline {
         QUALYS_ACCESS_TOKEN = credentials('qualys-access-token')
         AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+        AWS_SESSION_TOKEN = credentials('aws-session-token')
         AWS_DEFAULT_REGION = "${params.AWS_REGION}"
     }
 
