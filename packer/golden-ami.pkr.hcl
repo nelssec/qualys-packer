@@ -38,7 +38,7 @@ source "amazon-ebs" "golden_ami" {
     var.ami_tags
   )
 
-  ssh_interface                         = var.use_session_manager ? "session_manager" : "direct"
+  ssh_interface                         = var.use_session_manager ? "session_manager" : null
   subnet_id                             = var.subnet_id != "" ? var.subnet_id : null
   vpc_id                                = var.vpc_id != "" ? var.vpc_id : null
   associate_public_ip_address           = var.use_session_manager ? false : var.associate_public_ip
