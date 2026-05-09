@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500" font-family="Inter, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="hdrGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1a1a2e"/>
+      <stop offset="100%" style="stop-color:#16213e"/>
+    </linearGradient>
+    <linearGradient id="phaseGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="100%" style="stop-color:#818cf8"/>
+    </linearGradient>
+    <linearGradient id="phaseGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#10b981"/>
+      <stop offset="100%" style="stop-color:#34d399"/>
+    </linearGradient>
+    <linearGradient id="phaseGrad3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f59e0b"/>
+      <stop offset="100%" style="stop-color:#fbbf24"/>
+    </linearGradient>
+    <filter id="shd" x="-3%" y="-3%" width="106%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.12"/>
+    </filter>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#94a3b8"/></marker>
+    <marker id="arrG" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#10b981"/></marker>
+    <marker id="arrR" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#ef4444"/></marker>
+  </defs>
+
+  <rect width="1200" height="500" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <rect x="0" y="0" width="1200" height="55" fill="url(#hdrGrad)"/>
+  <text x="600" y="35" text-anchor="middle" fill="white" font-size="20" font-weight="bold">Golden AMI Build Pipeline with QScanner</text>
+
+  <!-- Phase labels -->
+  <rect x="30" y="75" width="350" height="28" rx="6" fill="url(#phaseGrad1)"/>
+  <text x="205" y="94" text-anchor="middle" fill="white" font-size="12" font-weight="600">PHASE 1: Build</text>
+  <rect x="420" y="75" width="350" height="28" rx="6" fill="url(#phaseGrad2)"/>
+  <text x="595" y="94" text-anchor="middle" fill="white" font-size="12" font-weight="600">PHASE 2: Scan</text>
+  <rect x="810" y="75" width="360" height="28" rx="6" fill="url(#phaseGrad3)"/>
+  <text x="990" y="94" text-anchor="middle" fill="white" font-size="12" font-weight="600">PHASE 3: Gate + Create</text>
+
+  <!-- Phase 1 Steps -->
+  <rect x="30" y="120" width="155" height="80" rx="8" fill="white" stroke="#c7d2fe" stroke-width="1.5" filter="url(#shd)"/>
+  <text x="107" y="150" text-anchor="middle" fill="#4338ca" font-size="11" font-weight="600">Source AMI</text>
+  <text x="107" y="168" text-anchor="middle" fill="#64748b" font-size="9">Amazon Linux 2023</text>
+  <text x="107" y="182" text-anchor="middle" fill="#64748b" font-size="9">Ubuntu 24.04</text>
+
+  <line x1="185" y1="160" x2="215" y2="160" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <rect x="220" y="120" width="155" height="80" rx="8" fill="white" stroke="#c7d2fe" stroke-width="1.5" filter="url(#shd)"/>
+  <text x="297" y="145" text-anchor="middle" fill="#4338ca" font-size="11" font-weight="600">Launch Instance</text>
+  <text x="297" y="163" text-anchor="middle" fill="#64748b" font-size="9">Patch + Harden</text>
+  <text x="297" y="177" text-anchor="middle" fill="#64748b" font-size="9">Install Applications</text>
+  <text x="297" y="191" text-anchor="middle" fill="#64748b" font-size="9">Custom Scripts</text>
+
+  <!-- Arrow Phase 1 to Phase 2 -->
+  <line x1="375" y1="160" x2="420" y2="160" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- Phase 2 Steps -->
+  <rect x="425" y="120" width="155" height="80" rx="8" fill="white" stroke="#6ee7b7" stroke-width="1.5" filter="url(#shd)"/>
+  <text x="502" y="145" text-anchor="middle" fill="#065f46" font-size="11" font-weight="600">Download QScanner</text>
+  <text x="502" y="163" text-anchor="middle" fill="#64748b" font-size="9">qualys.com/qscanner</text>
+  <text x="502" y="177" text-anchor="middle" fill="#64748b" font-size="9">Auto-detect OS/arch</text>
+  <text x="502" y="191" text-anchor="middle" fill="#64748b" font-size="9">SHA256 verified</text>
+
+  <line x1="580" y1="160" x2="610" y2="160" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <rect x="615" y="120" width="155" height="80" rx="8" fill="white" stroke="#6ee7b7" stroke-width="1.5" filter="url(#shd)"/>
+  <text x="692" y="142" text-anchor="middle" fill="#065f46" font-size="11" font-weight="600">qscanner rootfs /</text>
+  <text x="692" y="160" text-anchor="middle" fill="#64748b" font-size="9">OS pkgs: 291</text>
+  <text x="692" y="174" text-anchor="middle" fill="#64748b" font-size="9">SCA pkgs: 48</text>
+  <text x="692" y="188" text-anchor="middle" fill="#64748b" font-size="9">Scan time: 2.2s</text>
+
+  <!-- Arrow Phase 2 to Phase 3 -->
+  <line x1="770" y1="160" x2="815" y2="160" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- Phase 3: Policy Gate -->
+  <rect x="820" y="115" width="120" height="90" rx="8" fill="#1e293b" filter="url(#shd)"/>
+  <text x="880" y="145" text-anchor="middle" fill="white" font-size="11" font-weight="700">Policy</text>
+  <text x="880" y="162" text-anchor="middle" fill="white" font-size="11" font-weight="700">Gate</text>
+  <text x="855" y="185" fill="#4ade80" font-size="9">0: ALLOW</text>
+  <text x="855" y="197" fill="#f87171" font-size="9">42: DENY</text>
+
+  <!-- Pass arrow -->
+  <line x1="940" y1="140" x2="990" y2="140" stroke="#10b981" stroke-width="2" marker-end="url(#arrG)"/>
+
+  <!-- Fail arrow -->
+  <line x1="940" y1="180" x2="990" y2="180" stroke="#ef4444" stroke-width="2" marker-end="url(#arrR)"/>
+
+  <!-- AMI Created -->
+  <rect x="995" y="115" width="170" height="45" rx="8" fill="#ecfdf5" stroke="#10b981" stroke-width="2" filter="url(#shd)"/>
+  <text x="1080" y="142" text-anchor="middle" fill="#065f46" font-size="12" font-weight="700">AMI Created</text>
+
+  <!-- Build Fails -->
+  <rect x="995" y="165" width="170" height="45" rx="8" fill="#fef2f2" stroke="#ef4444" stroke-width="2" filter="url(#shd)"/>
+  <text x="1080" y="192" text-anchor="middle" fill="#991b1b" font-size="12" font-weight="700">Build Blocked</text>
+
+  <!-- Cleanup note -->
+  <rect x="820" y="220" width="345" height="30" rx="6" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="992" y="240" text-anchor="middle" fill="#475569" font-size="10">QScanner removed before snapshot. Nothing baked in.</text>
+
+  <!-- Bottom section: Scan Detail -->
+  <rect x="30" y="275" width="1140" height="200" rx="12" fill="white" stroke="#e2e8f0" stroke-width="2" filter="url(#shd)"/>
+  <text x="600" y="300" text-anchor="middle" fill="#1e293b" font-size="14" font-weight="700">Real Scan Output: Amazon Linux 2023 Golden AMI (Jenkins Build #5)</text>
+
+  <!-- Scan results columns -->
+  <rect x="55" y="315" width="250" height="145" rx="8" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1"/>
+  <text x="180" y="338" text-anchor="middle" fill="#065f46" font-size="12" font-weight="600">Detection</text>
+  <text x="70" y="360" fill="#374151" font-size="11">OS: Amazon Linux 2023.11</text>
+  <text x="70" y="380" fill="#374151" font-size="11">OS Packages: 291</text>
+  <text x="70" y="400" fill="#374151" font-size="11">Technologies: Python</text>
+  <text x="70" y="420" fill="#374151" font-size="11">Language Packages: 48</text>
+  <text x="70" y="440" fill="#374151" font-size="11">FileInsight Findings: 2</text>
+
+  <rect x="330" y="315" width="250" height="145" rx="8" fill="#fef2f2" stroke="#fecaca" stroke-width="1"/>
+  <text x="455" y="338" text-anchor="middle" fill="#991b1b" font-size="12" font-weight="600">Vulnerabilities: 30</text>
+  <rect x="350" y="350" width="210" height="22" rx="4" fill="#991b1b"/>
+  <text x="360" y="366" fill="white" font-size="10" font-weight="600">Severity 5 (Critical): 1</text>
+  <rect x="350" y="378" width="210" height="22" rx="4" fill="#dc2626"/>
+  <text x="360" y="394" fill="white" font-size="10" font-weight="600">Severity 4 (High): 8</text>
+  <rect x="350" y="406" width="210" height="22" rx="4" fill="#f59e0b"/>
+  <text x="360" y="422" fill="white" font-size="10" font-weight="600">Severity 3 (Medium): 17</text>
+  <rect x="350" y="434" width="210" height="22" rx="4" fill="#3b82f6"/>
+  <text x="360" y="450" fill="white" font-size="10" font-weight="600">Severity 2 (Low): 4</text>
+
+  <rect x="605" y="315" width="250" height="145" rx="8" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1"/>
+  <text x="730" y="338" text-anchor="middle" fill="#1e40af" font-size="12" font-weight="600">Artifacts Generated</text>
+  <text x="620" y="360" fill="#374151" font-size="11">SBOM (SPDX JSON)</text>
+  <text x="620" y="380" fill="#374151" font-size="11">Scan Result (JSON)</text>
+  <text x="620" y="400" fill="#374151" font-size="11">Changelist DB</text>
+  <text x="620" y="420" fill="#374151" font-size="11">SARIF Report</text>
+  <text x="620" y="440" fill="#374151" font-size="11">Tabular Console Report</text>
+
+  <rect x="880" y="315" width="270" height="145" rx="8" fill="#faf5ff" stroke="#e9d5ff" stroke-width="1"/>
+  <text x="1015" y="338" text-anchor="middle" fill="#6b21a8" font-size="12" font-weight="600">Backend Integration</text>
+  <text x="895" y="360" fill="#374151" font-size="11">SBOM uploaded to Qualys</text>
+  <text x="895" y="380" fill="#374151" font-size="11">Changelist uploaded</text>
+  <text x="895" y="400" fill="#374151" font-size="11">Vuln report fetched</text>
+  <text x="895" y="420" fill="#374151" font-size="11">Results in Qualys portal</text>
+  <text x="895" y="440" fill="#374151" font-size="11">AMI: ami-0e37e8aae4ef5ce84</text>
+</svg>
