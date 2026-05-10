@@ -61,6 +61,7 @@ pipeline {
                         -var "qualys_pod=${params.QUALYS_POD}" \
                         -var "region=${params.AWS_REGION}" \
                         -var "qscanner_s3_url=s3://qualys-qscanner-demo-314104994032/qscanner" \
+                        -var "iam_instance_profile=qualys-packer-s3-read" \
                         packer/
                 """
             }

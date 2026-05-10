@@ -7,8 +7,13 @@ QSCANNER_S3_URL="${QSCANNER_S3_URL:-}"
 echo "==> Installing QScanner (${QSCANNER_VERSION})"
 
 if [[ -n "${QSCANNER_S3_URL}" ]]; then
-    echo "==> Downloading from S3: ${QSCANNER_S3_URL}"
-    aws s3 cp "${QSCANNER_S3_URL}" /tmp/qscanner
+    if [[ "${QSCANNER_S3_URL}" == s3://* ]]; then
+        echo "==> Downloading from S3: ${QSCANNER_S3_URL}"
+        aws s3 cp "${QSCANNER_S3_URL}" /tmp/qscanner
+    else
+        echo "==> Downloading from URL"
+        curl -sSfL "${QSCANNER_S3_URL}" -o /tmp/qscanner
+    fi
     chmod +x /tmp/qscanner
 else
     INSTALL_DIR="/tmp/qscanner-install"
