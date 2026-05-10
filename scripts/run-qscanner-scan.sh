@@ -31,13 +31,15 @@ CMD=(/tmp/qscanner
     --output-dir "${OUTPUT_DIR}"
 )
 
-if [[ -n "${QUALYS_ASSET_NAME}" ]]; then
-    CMD+=(--scan-target-info "asset_name=${QUALYS_ASSET_NAME}")
+AMI_ID=$(curl -s http://169.254.169.254/latest/meta-data/ami-id 2>/dev/null || echo "")
+ACCOUNT_ID=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null | grep -o '"accountId" *: *"[^"]*"' | grep -o '[0-9]*' || echo "")
+
+if [[ -n "${AMI_ID}" ]]; then
+    CMD+=(--scan-target-info "asset_name=${AMI_ID}")
     CMD+=(--scan-target-info "provider_name=AWS")
-    ACCOUNT_ID=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null | grep -o '"accountId" *: *"[^"]*"' | grep -o '[0-9]*' || echo "")
-    if [[ -n "${ACCOUNT_ID}" ]]; then
-        CMD+=(--scan-target-info "asset_tag=${ACCOUNT_ID}")
-    fi
+fi
+if [[ -n "${ACCOUNT_ID}" ]]; then
+    CMD+=(--scan-target-info "asset_tag=${ACCOUNT_ID}")
 fi
 
 if [[ -n "${QUALYS_POLICY_TAGS}" ]]; then
