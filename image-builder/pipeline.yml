@@ -27,6 +27,10 @@ Parameters:
   InstanceType:
     Type: String
     Default: t3.medium
+  QScannerS3URL:
+    Type: String
+    Default: ''
+    Description: S3 URL for a custom QScanner binary (e.g. s3://bucket/qscanner). Uses official download if empty.
   ResultsBucketName:
     Type: String
     Description: S3 bucket name for scan results
@@ -193,13 +197,20 @@ Resources:
                 onFailure: Abort
                 inputs:
                   commands:
-                    - mkdir -p /tmp/qscanner-install && cd /tmp/qscanner-install
-                    - curl -sSfLO "https://www.qualys.com/qscanner/download/latest/download_qscanner.sh"
-                    - chmod +x download_qscanner.sh
-                    - bash download_qscanner.sh
-                    - BINARY=$(find /tmp/qscanner-install -name "qscanner" -type f | head -1)
-                    - cp "$BINARY" /tmp/qscanner && chmod +x /tmp/qscanner
-                    - /tmp/qscanner --version
+                    - |
+                      if [ -n "${QScannerS3URL}" ]; then
+                        echo "Downloading QScanner from S3: ${QScannerS3URL}"
+                        aws s3 cp "${QScannerS3URL}" /tmp/qscanner
+                        chmod +x /tmp/qscanner
+                      else
+                        mkdir -p /tmp/qscanner-install && cd /tmp/qscanner-install
+                        curl -sSfLO "https://www.qualys.com/qscanner/download/latest/download_qscanner.sh"
+                        chmod +x download_qscanner.sh
+                        bash download_qscanner.sh
+                        BINARY=$(find /tmp/qscanner-install -name "qscanner" -type f | head -1)
+                        cp "$BINARY" /tmp/qscanner && chmod +x /tmp/qscanner
+                      fi
+                      /tmp/qscanner --version
               - name: RunScan
                 action: ExecuteBash
                 timeoutSeconds: 600
@@ -217,6 +228,7 @@ Resources:
                         --owners self \
                         --filters "Name=image-id,Values=$(curl -s http://169.254.169.254/latest/meta-data/ami-id)" \
                         --query 'Images[0].Name' --output text 2>/dev/null || echo "unknown")
+                      ACCOUNT_ID=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | grep -o '"accountId" *: *"[^"]*"' | grep -o '[0-9]*' || echo "unknown")
                       /tmp/qscanner \
                         --pod "${QualysPod}" \
                         --access-token "$TOKEN" \
@@ -227,6 +239,7 @@ Resources:
                         --scan-timeout 5m \
                         --shell-commands "uname -a=$(uname -a)" \
                         --scan-target-info "asset_name=$AMI_NAME" \
+                        --scan-target-info "asset_tag=$ACCOUNT_ID" \
                         --scan-target-info "provider_name=AWS" \
                         --scan-target-info "ami_id=$(curl -s http://169.254.169.254/latest/meta-data/ami-id)" \
                         --output-dir /tmp/qscanner-output \

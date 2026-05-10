@@ -158,3 +158,9 @@ variable "qscanner_version" {
   default     = "latest"
   description = "QScanner version to download (e.g. 'latest', 'v4.8.0')"
 }
+
+variable "qscanner_s3_url" {
+  type        = string
+  default     = ""
+  description = "S3 URL for a custom QScanner binary (e.g. s3://bucket/qscanner). Overrides qscanner_version if set."
+}

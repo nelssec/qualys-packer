@@ -61,6 +61,7 @@ build {
     script = "${path.root}/../scripts/install-qscanner.sh"
     environment_vars = [
       "QSCANNER_VERSION=${var.qscanner_version}",
+      "QSCANNER_S3_URL=${var.qscanner_s3_url}",
     ]
   }
 
