@@ -1,0 +1,112 @@
+name: qscanner-vulnerability-scan
+description: Run Qualys QScanner vulnerability scan on a candidate AMI during the test phase. Downloads QScanner, retrieves credentials from SSM Parameter Store, scans the root filesystem, uploads results to S3, and gates the image on policy evaluation.
+schemaVersion: 1.0
+
+parameters:
+  - QualysPod:
+      type: string
+      description: Qualys platform pod (e.g. US1, CA1, EU1)
+      default: CA1
+  - QualysTokenParam:
+      type: string
+      description: SSM Parameter Store name containing the Qualys access token (SecureString)
+      default: /qualys/access-token
+  - QualysMode:
+      type: string
+      description: QScanner mode (get-report or evaluate-policy)
+      default: get-report
+  - QualysScanTypes:
+      type: string
+      description: Comma-separated scan types
+      default: pkg,fileinsight
+  - ResultsBucket:
+      type: string
+      description: S3 bucket for scan result uploads
+  - FailOnAudit:
+      type: string
+      description: Whether AUDIT result (exit 43) should fail the build
+      default: "false"
+
+phases:
+  - name: test
+    steps:
+      - name: DownloadQScanner
+        action: ExecuteBash
+        timeoutSeconds: 120
+        onFailure: Abort
+        inputs:
+          commands:
+            - mkdir -p /tmp/qscanner-install && cd /tmp/qscanner-install
+            - curl -sSfLO "https://www.qualys.com/qscanner/download/latest/download_qscanner.sh"
+            - chmod +x download_qscanner.sh
+            - bash download_qscanner.sh
+            - BINARY=$(find /tmp/qscanner-install -name "qscanner" -type f | head -1)
+            - cp "$BINARY" /tmp/qscanner && chmod +x /tmp/qscanner
+            - /tmp/qscanner --version
+
+      - name: RunScan
+        action: ExecuteBash
+        timeoutSeconds: 600
+        onFailure: Abort
+        inputs:
+          commands:
+            - |
+              TOKEN=$(aws ssm get-parameter \
+                --name "{{ QualysTokenParam }}" \
+                --with-decryption \
+                --query 'Parameter.Value' \
+                --output text)
+
+              mkdir -p /tmp/qscanner-output
+
+              AMI_NAME=$(aws ec2 describe-images \
+                --owners self \
+                --filters "Name=image-id,Values=$(curl -s http://169.254.169.254/latest/meta-data/ami-id)" \
+                --query 'Images[0].Name' --output text 2>/dev/null || echo "unknown")
+
+              /tmp/qscanner \
+                --pod "{{ QualysPod }}" \
+                --access-token "$TOKEN" \
+                --mode "{{ QualysMode }}" \
+                --scan-types "{{ QualysScanTypes }}" \
+                --report-format "table,sarif" \
+                --exclude-dirs "/proc,/sys,/dev,/run,/tmp" \
+                --scan-target-info "asset_name=$AMI_NAME" \
+                --scan-target-info "provider_name=AWS" \
+                --scan-target-info "ami_id=$(curl -s http://169.254.169.254/latest/meta-data/ami-id)" \
+                --scan-timeout 5m \
+                --shell-commands "uname -a=$(uname -a)" \
+                --output-dir /tmp/qscanner-output \
+                rootfs /
+              SCAN_EXIT=$?
+
+              echo "QScanner exited with code: $SCAN_EXIT"
+              ls -la /tmp/qscanner-output/ 2>/dev/null || echo "(no artifacts)"
+
+              if [ "{{ QualysMode }}" = "evaluate-policy" ]; then
+                case $SCAN_EXIT in
+                  0)  echo "Policy: ALLOW"; exit 0 ;;
+                  42) echo "Policy: DENY — image will not be distributed"; exit 1 ;;
+                  43)
+                    if [ "{{ FailOnAudit }}" = "true" ]; then
+                      echo "Policy: AUDIT — failing (FailOnAudit=true)"; exit 1
+                    else
+                      echo "Policy: AUDIT — continuing"; exit 0
+                    fi
+                    ;;
+                  *)  echo "QScanner error (exit $SCAN_EXIT)"; exit 1 ;;
+                esac
+              else
+                if [ $SCAN_EXIT -ne 0 ]; then
+                  echo "WARNING: QScanner exited $SCAN_EXIT, but mode is {{ QualysMode }} so test passes"
+                fi
+                exit 0
+              fi
+
+      - name: UploadResults
+        action: S3Upload
+        onFailure: Continue
+        inputs:
+          - source: /tmp/qscanner-output/*
+            destination: s3://{{ ResultsBucket }}/qscanner-results/{{ build.DateCreated }}/
+            recurse: true

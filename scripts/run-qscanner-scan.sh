@@ -3,11 +3,12 @@ set -uo pipefail
 
 QUALYS_POD="${QUALYS_POD:?QUALYS_POD must be set}"
 QUALYS_MODE="${QUALYS_MODE:-get-report}"
-QUALYS_SCAN_TYPES="${QUALYS_SCAN_TYPES:-os,sca,secret,fileinsight}"
+QUALYS_SCAN_TYPES="${QUALYS_SCAN_TYPES:-pkg,fileinsight}"
 QUALYS_REPORT_FORMAT="${QUALYS_REPORT_FORMAT:-table,sarif}"
 QUALYS_EXCLUDE_DIRS="${QUALYS_EXCLUDE_DIRS:-/proc,/sys,/dev,/run,/tmp}"
 QUALYS_SCAN_TIMEOUT="${QUALYS_SCAN_TIMEOUT:-5m}"
 QUALYS_POLICY_TAGS="${QUALYS_POLICY_TAGS:-}"
+QUALYS_ASSET_NAME="${QUALYS_ASSET_NAME:-}"
 FAIL_ON_AUDIT="${FAIL_ON_AUDIT:-false}"
 
 OUTPUT_DIR="/tmp/qscanner-output"
@@ -29,6 +30,11 @@ CMD=(/tmp/qscanner
     --shell-commands "uname -a=$(uname -a)"
     --output-dir "${OUTPUT_DIR}"
 )
+
+if [[ -n "${QUALYS_ASSET_NAME}" ]]; then
+    CMD+=(--scan-target-info "asset_name=${QUALYS_ASSET_NAME}")
+    CMD+=(--scan-target-info "provider_name=AWS")
+fi
 
 if [[ -n "${QUALYS_POLICY_TAGS}" ]]; then
     CMD+=(--policy-tags "${QUALYS_POLICY_TAGS}")

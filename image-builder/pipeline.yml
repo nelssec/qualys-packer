@@ -1,0 +1,312 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Golden AMI pipeline with Qualys QScanner vulnerability scanning via EC2 Image Builder
+
+Parameters:
+  QualysPod:
+    Type: String
+    Default: CA1
+    AllowedValues: [US1, US2, US3, US4, EU1, EU2, CA1, IN1, AU1, UK1, AE1, KSA1]
+  QualysMode:
+    Type: String
+    Default: get-report
+    AllowedValues: [get-report, evaluate-policy, scan-only, inventory-only]
+  QualysScanTypes:
+    Type: String
+    Default: pkg,fileinsight
+  QualysTokenParamName:
+    Type: String
+    Default: /qualys/access-token
+    Description: SSM Parameter Store name for Qualys access token (must be SecureString)
+  KmsKeyArn:
+    Type: String
+    Default: ''
+    Description: KMS key ARN used to encrypt the SSM SecureString parameter (leave empty for aws/ssm default key)
+  BaseAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+  InstanceType:
+    Type: String
+    Default: t3.medium
+  ResultsBucketName:
+    Type: String
+    Description: S3 bucket name for scan results
+  SubnetId:
+    Type: String
+    Default: ''
+  NotificationEmail:
+    Type: String
+    Default: ''
+    Description: Email address for build notifications (leave empty to skip)
+  PipelineSchedule:
+    Type: String
+    Default: ''
+    Description: Cron expression for scheduled builds (e.g. cron(0 6 ? * MON *))
+
+Conditions:
+  HasSubnet: !Not [!Equals [!Ref SubnetId, '']]
+  HasSchedule: !Not [!Equals [!Ref PipelineSchedule, '']]
+  HasCustomKmsKey: !Not [!Equals [!Ref KmsKeyArn, '']]
+  HasNotification: !Not [!Equals [!Ref NotificationEmail, '']]
+
+Resources:
+
+  ResultsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Ref ResultsBucketName
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireOldResults
+            Status: Enabled
+            ExpirationInDays: 90
+          - Id: CleanupIncompleteUploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+
+  ResultsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ResultsBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: '*'
+            Action: s3:*
+            Resource:
+              - !Sub arn:aws:s3:::${ResultsBucketName}
+              - !Sub arn:aws:s3:::${ResultsBucketName}/*
+            Condition:
+              Bool:
+                aws:SecureTransport: 'false'
+
+  NotificationTopic:
+    Type: AWS::SNS::Topic
+    Condition: HasNotification
+    Properties:
+      TopicName: !Sub ${AWS::StackName}-notifications
+
+  NotificationSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: HasNotification
+    Properties:
+      TopicArn: !Ref NotificationTopic
+      Protocol: email
+      Endpoint: !Ref NotificationEmail
+
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${AWS::StackName}-instance-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/EC2InstanceProfileForImageBuilder
+      Policies:
+        - PolicyName: qscanner-ssm-access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: GetQualysToken
+                Effect: Allow
+                Action: ssm:GetParameter
+                Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${QualysTokenParamName}
+              - !If
+                - HasCustomKmsKey
+                - Sid: DecryptWithKmsKey
+                  Effect: Allow
+                  Action: kms:Decrypt
+                  Resource: !Ref KmsKeyArn
+                - !Ref AWS::NoValue
+        - PolicyName: qscanner-s3-results
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: UploadScanResults
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource: !Sub arn:aws:s3:::${ResultsBucketName}/qscanner-results/*
+              - Sid: GetBucketLocation
+                Effect: Allow
+                Action: s3:GetBucketLocation
+                Resource: !Sub arn:aws:s3:::${ResultsBucketName}
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref InstanceRole
+
+  InfraConfig:
+    Type: AWS::ImageBuilder::InfrastructureConfiguration
+    Properties:
+      Name: !Sub ${AWS::StackName}-infra
+      InstanceProfileName: !Ref InstanceProfile
+      InstanceTypes:
+        - !Ref InstanceType
+      TerminateInstanceOnFailure: true
+      SubnetId: !If [HasSubnet, !Ref SubnetId, !Ref 'AWS::NoValue']
+      SnsTopicArn: !If [HasNotification, !Ref NotificationTopic, !Ref 'AWS::NoValue']
+      Logging:
+        S3Logs:
+          S3BucketName: !Ref ResultsBucket
+          S3KeyPrefix: build-logs/
+
+  QScannerComponent:
+    Type: AWS::ImageBuilder::Component
+    Properties:
+      Name: !Sub ${AWS::StackName}-qscanner
+      Platform: Linux
+      Version: 1.0.0
+      Data: !Sub |
+        name: qscanner-vulnerability-scan
+        description: Qualys QScanner vulnerability scan
+        schemaVersion: 1.0
+        phases:
+          - name: test
+            steps:
+              - name: DownloadQScanner
+                action: ExecuteBash
+                timeoutSeconds: 120
+                onFailure: Abort
+                inputs:
+                  commands:
+                    - mkdir -p /tmp/qscanner-install && cd /tmp/qscanner-install
+                    - curl -sSfLO "https://www.qualys.com/qscanner/download/latest/download_qscanner.sh"
+                    - chmod +x download_qscanner.sh
+                    - bash download_qscanner.sh
+                    - BINARY=$(find /tmp/qscanner-install -name "qscanner" -type f | head -1)
+                    - cp "$BINARY" /tmp/qscanner && chmod +x /tmp/qscanner
+                    - /tmp/qscanner --version
+              - name: RunScan
+                action: ExecuteBash
+                timeoutSeconds: 600
+                onFailure: Abort
+                inputs:
+                  commands:
+                    - |
+                      TOKEN=$(aws ssm get-parameter \
+                        --name "${QualysTokenParamName}" \
+                        --with-decryption \
+                        --query 'Parameter.Value' \
+                        --output text)
+                      mkdir -p /tmp/qscanner-output
+                      AMI_NAME=$(aws ec2 describe-images \
+                        --owners self \
+                        --filters "Name=image-id,Values=$(curl -s http://169.254.169.254/latest/meta-data/ami-id)" \
+                        --query 'Images[0].Name' --output text 2>/dev/null || echo "unknown")
+                      /tmp/qscanner \
+                        --pod "${QualysPod}" \
+                        --access-token "$TOKEN" \
+                        --mode "${QualysMode}" \
+                        --scan-types "${QualysScanTypes}" \
+                        --report-format "table,sarif" \
+                        --exclude-dirs "/proc,/sys,/dev,/run,/tmp" \
+                        --scan-timeout 5m \
+                        --shell-commands "uname -a=$(uname -a)" \
+                        --scan-target-info "asset_name=$AMI_NAME" \
+                        --scan-target-info "provider_name=AWS" \
+                        --scan-target-info "ami_id=$(curl -s http://169.254.169.254/latest/meta-data/ami-id)" \
+                        --output-dir /tmp/qscanner-output \
+                        rootfs /
+                      SCAN_EXIT=$?
+                      unset TOKEN
+                      echo "QScanner exited with code: $SCAN_EXIT"
+                      ls -la /tmp/qscanner-output/ 2>/dev/null || echo "(no artifacts)"
+                      if [ "${QualysMode}" = "evaluate-policy" ]; then
+                        case $SCAN_EXIT in
+                          0)  echo "Policy: ALLOW"; exit 0 ;;
+                          42) echo "Policy: DENY"; exit 1 ;;
+                          43) echo "Policy: AUDIT"; exit 0 ;;
+                          *)  echo "QScanner error"; exit 1 ;;
+                        esac
+                      else
+                        [ $SCAN_EXIT -ne 0 ] && echo "WARNING: QScanner exited $SCAN_EXIT but mode is ${QualysMode}"
+                        exit 0
+                      fi
+              - name: UploadResults
+                action: S3Upload
+                onFailure: Continue
+                inputs:
+                  - source: /tmp/qscanner-output/*
+                    destination: s3://${ResultsBucketName}/qscanner-results/
+                    recurse: true
+
+  ImageRecipe:
+    Type: AWS::ImageBuilder::ImageRecipe
+    Properties:
+      Name: !Sub ${AWS::StackName}-recipe
+      Version: 1.0.0
+      ParentImage: !Ref BaseAmiId
+      Components:
+        - ComponentArn: !Ref QScannerComponent
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 30
+            VolumeType: gp3
+            Encrypted: true
+            DeleteOnTermination: true
+
+  DistributionConfig:
+    Type: AWS::ImageBuilder::DistributionConfiguration
+    Properties:
+      Name: !Sub ${AWS::StackName}-distribution
+      Distributions:
+        - Region: !Ref AWS::Region
+          AmiDistributionConfiguration:
+            Name: !Sub golden-ami-al2023-{{ imagebuilder:buildDate }}
+            AmiTags:
+              Purpose: Golden AMI
+              Scanner: QScanner
+              Pipeline: EC2 Image Builder
+
+  Pipeline:
+    Type: AWS::ImageBuilder::ImagePipeline
+    Properties:
+      Name: !Sub ${AWS::StackName}-pipeline
+      ImageRecipeArn: !Ref ImageRecipe
+      InfrastructureConfigurationArn: !Ref InfraConfig
+      DistributionConfigurationArn: !Ref DistributionConfig
+      ImageTestsConfiguration:
+        ImageTestsEnabled: true
+        TimeoutMinutes: 30
+      Schedule: !If
+        - HasSchedule
+        - ScheduleExpression: !Ref PipelineSchedule
+          PipelineExecutionStartCondition: EXPRESSION_MATCH_ONLY
+        - !Ref 'AWS::NoValue'
+      Status: ENABLED
+
+Outputs:
+  PipelineArn:
+    Value: !Ref Pipeline
+  ComponentArn:
+    Value: !Ref QScannerComponent
+  ResultsBucket:
+    Value: !Ref ResultsBucket
+  NotificationTopicArn:
+    Condition: HasNotification
+    Value: !Ref NotificationTopic

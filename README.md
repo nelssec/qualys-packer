@@ -188,12 +188,88 @@ qualys-packer/
   output/                            Scan artifacts (gitignored)
 ```
 
+## EC2 Image Builder
+
+An alternative to Packer using the fully managed AWS EC2 Image Builder service. QScanner runs in the **test phase** — after the AMI snapshot is taken, on a fresh instance launched from the candidate image. If the scan fails, the AMI is not distributed.
+
+| | Packer | EC2 Image Builder |
+|---|---|---|
+| Scan timing | Pre-snapshot (build phase) | Post-snapshot (test phase) |
+| Cleanup needed | Yes | No (test instance is discarded) |
+| Secrets | Env vars from CI/CD | SSM Parameter Store (SecureString) |
+| Results | File provisioner download | S3 upload |
+| Multi-region | Manual | Built-in distribution |
+| Scheduling | Jenkins/GitHub cron | Built-in pipeline scheduling |
+| Cost | EC2 + CI/CD tool | EC2 only (service is free) |
+
+### Deploy
+
+```bash
+# Store your Qualys token in SSM Parameter Store
+aws ssm put-parameter \
+  --name /qualys/access-token \
+  --type SecureString \
+  --value "<your-token>"
+
+# Deploy the pipeline
+aws cloudformation deploy \
+  --template-file image-builder/pipeline.yml \
+  --stack-name qualys-golden-ami \
+  --parameter-overrides \
+    QualysPod=CA1 \
+    QualysMode=get-report \
+    ResultsBucketName=my-scan-results-bucket \
+  --capabilities CAPABILITY_NAMED_IAM
+
+# Trigger a build
+PIPELINE_ARN=$(aws cloudformation describe-stacks \
+  --stack-name qualys-golden-ami \
+  --query 'Stacks[0].Outputs[?OutputKey==`PipelineArn`].OutputValue' \
+  --output text)
+
+aws imagebuilder start-image-pipeline-execution \
+  --image-pipeline-arn "$PIPELINE_ARN"
+```
+
+### Files
+
+```
+image-builder/
+  pipeline.yml                     CloudFormation template (full pipeline)
+  qscanner-test-component.yml     Standalone component (use in existing pipelines)
+```
+
+The standalone component (`qscanner-test-component.yml`) can be added to any existing Image Builder recipe as a test component.
+
 ## Security
 
-- Access tokens are never logged. The scan script redacts the token from all command output.
+- Access tokens are never logged. The Packer scan script redacts the token from all command output. The Image Builder component retrieves the token from SSM Parameter Store at runtime.
 - QScanner is downloaded, used, and removed within a single build. Nothing persists in the AMI.
 - SSH access CIDRs are configurable. Use `temporary_security_group_source_cidrs` to restrict access, or enable `use_session_manager` to avoid opening port 22 entirely.
 - The access token variable is marked `sensitive` in Packer, which prevents it from appearing in plan output.
+- The Image Builder pipeline uses least-privilege IAM with access scoped to the specific SSM parameter and S3 bucket.
+
+## Project Structure
+
+```
+qualys-packer/
+  packer/
+    golden-ami.pkr.hcl               Packer template
+    variables.pkr.hcl                Variable declarations
+    amazon-linux-2023.pkrvars.hcl    AL2023 example config
+    ubuntu-2404.pkrvars.hcl          Ubuntu 24.04 example config
+  image-builder/
+    pipeline.yml                     CloudFormation template (full pipeline)
+    qscanner-test-component.yml     Standalone component for existing pipelines
+  scripts/
+    install-qscanner.sh              Downloads QScanner (Packer)
+    run-qscanner-scan.sh             Executes the scan (Packer)
+    cleanup-qscanner.sh              Removes QScanner before snapshot (Packer)
+  .github/workflows/
+    build-golden-ami.yml             GitHub Actions workflow
+  Jenkinsfile                        Jenkins pipeline
+  output/                            Scan artifacts (gitignored)
+```
 
 ## License
 

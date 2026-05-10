@@ -75,6 +75,7 @@ build {
       "QUALYS_EXCLUDE_DIRS=${var.qualys_exclude_dirs}",
       "QUALYS_SCAN_TIMEOUT=${var.qualys_scan_timeout}",
       "QUALYS_POLICY_TAGS=${var.qualys_policy_tags}",
+      "QUALYS_ASSET_NAME=${var.ami_name_prefix}",
       "FAIL_ON_AUDIT=${var.fail_on_audit}",
     ]
   }
