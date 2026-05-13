@@ -153,6 +153,44 @@ variable "fail_on_audit" {
   description = "If true, AUDIT result (exit 43) also fails the build in evaluate-policy mode"
 }
 
+variable "install_cloud_agent" {
+  type        = bool
+  default     = false
+  description = "Install Qualys Cloud Agent in the golden image with GoldenImage=true. Agent activates on first boot of cloned instances."
+}
+
+variable "cloud_agent_patch" {
+  type        = bool
+  default     = true
+  description = "Use Cloud Agent to scan AND patch the AMI. Agent installs, patches deploy, agent stops before snapshot. Set to false to use QScanner path instead."
+}
+
+variable "patch_wait_timeout" {
+  type        = string
+  default     = "600"
+  description = "Seconds to wait for Cloud Agent patching to complete"
+}
+
+variable "qualys_customer_id" {
+  type        = string
+  default     = ""
+  description = "Qualys Customer ID for Cloud Agent activation"
+  sensitive   = true
+}
+
+variable "qualys_activation_id" {
+  type        = string
+  default     = ""
+  description = "Qualys Activation ID for Cloud Agent provisioning"
+  sensitive   = true
+}
+
+variable "qualys_agent_url" {
+  type        = string
+  default     = ""
+  description = "URL or S3 path to Qualys Cloud Agent installer package"
+}
+
 variable "qscanner_version" {
   type        = string
   default     = "latest"

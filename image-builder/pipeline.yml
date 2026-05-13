@@ -151,11 +151,17 @@ Resources:
                 Effect: Allow
                 Action:
                   - s3:PutObject
-                Resource: !Sub arn:aws:s3:::${ResultsBucketName}/qscanner-results/*
+                Resource:
+                  - !Sub arn:aws:s3:::${ResultsBucketName}/qscanner-results/*
+                  - !Sub arn:aws:s3:::${ResultsBucketName}/build-logs/*
               - Sid: GetBucketLocation
                 Effect: Allow
                 Action: s3:GetBucketLocation
                 Resource: !Sub arn:aws:s3:::${ResultsBucketName}
+              - Sid: DownloadQScanner
+                Effect: Allow
+                Action: s3:GetObject
+                Resource: arn:aws:s3:::qualys-qscanner-demo-314104994032/*
 
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -183,7 +189,7 @@ Resources:
     Properties:
       Name: !Sub ${AWS::StackName}-qscanner
       Platform: Linux
-      Version: 1.0.0
+      Version: 1.0.1
       Data: !Sub |
         name: qscanner-vulnerability-scan
         description: Qualys QScanner vulnerability scan
@@ -271,7 +277,7 @@ Resources:
     Type: AWS::ImageBuilder::ImageRecipe
     Properties:
       Name: !Sub ${AWS::StackName}-recipe
-      Version: 1.0.0
+      Version: 1.0.1
       ParentImage: !Ref BaseAmiId
       Components:
         - ComponentArn: !Ref QScannerComponent
@@ -305,7 +311,7 @@ Resources:
       DistributionConfigurationArn: !Ref DistributionConfig
       ImageTestsConfiguration:
         ImageTestsEnabled: true
-        TimeoutMinutes: 30
+        TimeoutMinutes: 60
       Schedule: !If
         - HasSchedule
         - ScheduleExpression: !Ref PipelineSchedule
