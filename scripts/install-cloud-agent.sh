@@ -3,42 +3,50 @@ set -euo pipefail
 
 QUALYS_CUSTOMER_ID="${QUALYS_CUSTOMER_ID:?QUALYS_CUSTOMER_ID must be set}"
 QUALYS_ACTIVATION_ID="${QUALYS_ACTIVATION_ID:?QUALYS_ACTIVATION_ID must be set}"
-QUALYS_AGENT_URL="${QUALYS_AGENT_URL:-}"
+QUALYS_AGENT_URL="${QUALYS_AGENT_URL:?QUALYS_AGENT_URL must be set}"
+QUALYS_SERVER_URI="${QUALYS_SERVER_URI:-}"
 
 echo "==> Installing Qualys Cloud Agent (GoldenImage mode)"
 
-if [[ -n "${QUALYS_AGENT_URL}" ]]; then
-    if [[ "${QUALYS_AGENT_URL}" == s3://* ]]; then
-        echo "==> Downloading agent from S3"
-        aws s3 cp "${QUALYS_AGENT_URL}" /tmp/qualys-cloud-agent.rpm
-    else
-        echo "==> Downloading agent from URL"
-        curl -sSfL "${QUALYS_AGENT_URL}" -o /tmp/qualys-cloud-agent.rpm
-    fi
+AGENT_PKG="/tmp/qualys-cloud-agent"
+
+if [[ "${QUALYS_AGENT_URL}" == s3://* ]]; then
+    aws s3 cp "${QUALYS_AGENT_URL}" "${AGENT_PKG}"
 else
-    echo "ERROR: QUALYS_AGENT_URL must be set to the Cloud Agent installer location"
-    exit 1
+    curl -sSfL "${QUALYS_AGENT_URL}" -o "${AGENT_PKG}"
 fi
+
+echo "==> Blocking Qualys platform connectivity during install"
+echo "127.0.0.1 qualysguard.qualys.com" | sudo tee -a /etc/hosts > /dev/null
 
 if command -v dpkg &> /dev/null; then
-    echo "==> Installing Cloud Agent (Debian)"
-    sudo dpkg --install /tmp/qualys-cloud-agent.rpm
+    sudo dpkg --install "${AGENT_PKG}"
 elif command -v rpm &> /dev/null; then
-    echo "==> Installing Cloud Agent (RPM)"
-    sudo rpm -ivh /tmp/qualys-cloud-agent.rpm
+    sudo rpm -ivh "${AGENT_PKG}"
 else
-    echo "ERROR: No supported package manager found (dpkg or rpm)"
+    echo "ERROR: No supported package manager found"
     exit 1
 fi
 
-echo "==> Configuring Cloud Agent with ActivationId and CustomerId"
-sudo /usr/local/qualys/cloud-agent/bin/qualys-cloud-agent.sh \
-    ActivationId="${QUALYS_ACTIVATION_ID}" \
-    CustomerId="${QUALYS_CUSTOMER_ID}"
+rm -f "${AGENT_PKG}"
 
-echo "==> Stopping Cloud Agent (GoldenImage mode - agent will activate on first boot of cloned instances)"
+echo "==> Configuring Cloud Agent"
+ACTIVATE_CMD="ActivationId=${QUALYS_ACTIVATION_ID} CustomerId=${QUALYS_CUSTOMER_ID}"
+if [[ -n "${QUALYS_SERVER_URI}" ]]; then
+    ACTIVATE_CMD="${ACTIVATE_CMD} ServerUri=${QUALYS_SERVER_URI}"
+fi
+# shellcheck disable=SC2086
+sudo /usr/local/qualys/cloud-agent/bin/qualys-cloud-agent.sh ${ACTIVATE_CMD}
+
+echo "==> Stopping Cloud Agent"
 sudo service qualys-cloud-agent stop
 
-rm -f /tmp/qualys-cloud-agent.rpm
+echo "==> Removing network block"
+sudo sed -i '/qualysguard.qualys.com/d' /etc/hosts
 
-echo "==> Qualys Cloud Agent installed in GoldenImage mode"
+echo "==> Cleaning up for golden image"
+sudo rm -rf /var/log/qualys/*
+
+echo "==> Cloud Agent installed in GoldenImage mode"
+echo "    Agent is configured but has NOT provisioned (no UUID generated)"
+echo "    On clone boot: agent starts, connects, gets unique identity"

@@ -4,32 +4,40 @@ set -euo pipefail
 QUALYS_CUSTOMER_ID="${QUALYS_CUSTOMER_ID:?QUALYS_CUSTOMER_ID must be set}"
 QUALYS_ACTIVATION_ID="${QUALYS_ACTIVATION_ID:?QUALYS_ACTIVATION_ID must be set}"
 QUALYS_AGENT_URL="${QUALYS_AGENT_URL:?QUALYS_AGENT_URL must be set}"
+QUALYS_SERVER_URI="${QUALYS_SERVER_URI:-}"
 PATCH_WAIT_TIMEOUT="${PATCH_WAIT_TIMEOUT:-600}"
 PATCH_POLL_INTERVAL="${PATCH_POLL_INTERVAL:-30}"
 
 echo "==> Phase 1: Install Qualys Cloud Agent"
 
+AGENT_PKG="/tmp/qualys-cloud-agent"
+
 if [[ "${QUALYS_AGENT_URL}" == s3://* ]]; then
-    aws s3 cp "${QUALYS_AGENT_URL}" /tmp/qualys-cloud-agent.rpm
+    aws s3 cp "${QUALYS_AGENT_URL}" "${AGENT_PKG}"
 else
-    curl -sSfL "${QUALYS_AGENT_URL}" -o /tmp/qualys-cloud-agent.rpm
+    curl -sSfL "${QUALYS_AGENT_URL}" -o "${AGENT_PKG}"
 fi
 
 if command -v dpkg &> /dev/null; then
-    sudo dpkg --install /tmp/qualys-cloud-agent.rpm
+    echo "==> Installing Cloud Agent (Debian/Ubuntu)"
+    sudo dpkg --install "${AGENT_PKG}"
 elif command -v rpm &> /dev/null; then
-    sudo rpm -ivh /tmp/qualys-cloud-agent.rpm
+    echo "==> Installing Cloud Agent (RHEL/Amazon Linux)"
+    sudo rpm -ivh "${AGENT_PKG}"
 else
     echo "ERROR: No supported package manager found"
     exit 1
 fi
 
-rm -f /tmp/qualys-cloud-agent.rpm
+rm -f "${AGENT_PKG}"
 
 echo "==> Phase 2: Activate Cloud Agent"
-sudo /usr/local/qualys/cloud-agent/bin/qualys-cloud-agent.sh \
-    ActivationId="${QUALYS_ACTIVATION_ID}" \
-    CustomerId="${QUALYS_CUSTOMER_ID}"
+ACTIVATE_CMD="ActivationId=${QUALYS_ACTIVATION_ID} CustomerId=${QUALYS_CUSTOMER_ID}"
+if [[ -n "${QUALYS_SERVER_URI}" ]]; then
+    ACTIVATE_CMD="${ACTIVATE_CMD} ServerUri=${QUALYS_SERVER_URI}"
+fi
+# shellcheck disable=SC2086
+sudo /usr/local/qualys/cloud-agent/bin/qualys-cloud-agent.sh ${ACTIVATE_CMD}
 
 echo "==> Phase 3: Wait for agent to connect and scan"
 ELAPSED=0
@@ -78,16 +86,23 @@ while [[ ${ELAPSED} -lt ${PATCH_WAIT_TIMEOUT} ]]; do
     ELAPSED=$((ELAPSED + PATCH_POLL_INTERVAL))
 done
 
-echo "==> Phase 5: Prepare for golden image (GoldenImage mode)"
+echo "==> Phase 5: Prepare golden image"
+echo "    Stopping agent and clearing identity for clean clone provisioning"
 
 sudo service qualys-cloud-agent stop
 
 sudo rm -f /etc/qualys/hostid
 sudo rm -f /etc/qualys/cloud-agent/setup/uuid
-echo "    Cleared agent identity files for clean provisioning on clone boot"
+sudo rm -rf /var/log/qualys/*
 
-echo "==> Cloud Agent installed and patched in GoldenImage mode"
-echo "    - Agent will re-activate with a unique ID on first boot"
-echo "    - VDI clones will auto-provision via Asset Identification Service"
-echo "    - VMDR will continuously monitor for new vulnerabilities"
-echo "    - Patch Management will deploy patches on schedule"
+echo "    Agent stopped"
+echo "    Identity files cleared (hostid, uuid)"
+echo "    Agent logs cleared"
+echo ""
+echo "==> Golden image ready"
+echo "    On clone boot:"
+echo "    - Agent starts automatically"
+echo "    - Provisions with a unique identity"
+echo "    - VDI: Asset Identification Service deduplicates clones"
+echo "    - VMDR scans continuously"
+echo "    - Patch Management deploys patches on schedule"

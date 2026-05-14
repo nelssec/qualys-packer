@@ -191,6 +191,12 @@ variable "qualys_agent_url" {
   description = "URL or S3 path to Qualys Cloud Agent installer package"
 }
 
+variable "qualys_server_uri" {
+  type        = string
+  default     = ""
+  description = "Qualys Cloud Agent server URI (e.g. https://qagpublic.qg1.apps.qualys.ca/CloudAgent). Auto-detected from pod if empty."
+}
+
 variable "qscanner_version" {
   type        = string
   default     = "latest"

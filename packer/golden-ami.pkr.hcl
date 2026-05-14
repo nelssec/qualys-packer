@@ -68,6 +68,7 @@ build {
         "QUALYS_CUSTOMER_ID=${var.qualys_customer_id}",
         "QUALYS_ACTIVATION_ID=${var.qualys_activation_id}",
         "QUALYS_AGENT_URL=${var.qualys_agent_url}",
+        "QUALYS_SERVER_URI=${var.qualys_server_uri}",
         "PATCH_WAIT_TIMEOUT=${var.patch_wait_timeout}",
       ]
     }
@@ -135,6 +136,7 @@ build {
         "QUALYS_CUSTOMER_ID=${var.qualys_customer_id}",
         "QUALYS_ACTIVATION_ID=${var.qualys_activation_id}",
         "QUALYS_AGENT_URL=${var.qualys_agent_url}",
+        "QUALYS_SERVER_URI=${var.qualys_server_uri}",
       ]
     }
   }
