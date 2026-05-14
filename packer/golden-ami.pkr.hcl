@@ -68,13 +68,16 @@ build {
         "QUALYS_CUSTOMER_ID=${var.qualys_customer_id}",
         "QUALYS_ACTIVATION_ID=${var.qualys_activation_id}",
         "QUALYS_AGENT_URL=${var.qualys_agent_url}",
+        "QUALYS_API_USERNAME=${var.qualys_api_username}",
+        "QUALYS_API_PASSWORD=${var.qualys_api_password}",
+        "QUALYS_API_URL=${var.qualys_api_url}",
         "QUALYS_SERVER_URI=${var.qualys_server_uri}",
         "PATCH_WAIT_TIMEOUT=${var.patch_wait_timeout}",
       ]
     }
   }
 
-  # ---- Path B: QScanner scan only (default, cloud_agent_patch=false) ----
+  # ---- Path B: QScanner scan only (cloud_agent_patch=false) ----
 
   dynamic "provisioner" {
     labels   = ["shell"]
@@ -136,6 +139,9 @@ build {
         "QUALYS_CUSTOMER_ID=${var.qualys_customer_id}",
         "QUALYS_ACTIVATION_ID=${var.qualys_activation_id}",
         "QUALYS_AGENT_URL=${var.qualys_agent_url}",
+        "QUALYS_API_USERNAME=${var.qualys_api_username}",
+        "QUALYS_API_PASSWORD=${var.qualys_api_password}",
+        "QUALYS_API_URL=${var.qualys_api_url}",
         "QUALYS_SERVER_URI=${var.qualys_server_uri}",
       ]
     }

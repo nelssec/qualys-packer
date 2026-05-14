@@ -187,8 +187,28 @@ variable "qualys_activation_id" {
 
 variable "qualys_agent_url" {
   type        = string
-  default     = ""
-  description = "URL or S3 path to Qualys Cloud Agent installer package"
+  default     = "api"
+  description = "Cloud Agent source: 'api' to download from Qualys API (requires qualys_api_username/password), S3 path (s3://bucket/agent), or direct URL"
+}
+
+variable "qualys_api_username" {
+  type        = string
+  default     = env("QUALYS_API_USERNAME")
+  description = "Qualys API username for Cloud Agent download"
+  sensitive   = true
+}
+
+variable "qualys_api_password" {
+  type        = string
+  default     = env("QUALYS_API_PASSWORD")
+  description = "Qualys API password for Cloud Agent download"
+  sensitive   = true
+}
+
+variable "qualys_api_url" {
+  type        = string
+  default     = "https://qualysapi.qg1.apps.qualys.ca"
+  description = "Qualys API base URL for Cloud Agent download"
 }
 
 variable "qualys_server_uri" {

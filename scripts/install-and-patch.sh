@@ -3,32 +3,24 @@ set -euo pipefail
 
 QUALYS_CUSTOMER_ID="${QUALYS_CUSTOMER_ID:?QUALYS_CUSTOMER_ID must be set}"
 QUALYS_ACTIVATION_ID="${QUALYS_ACTIVATION_ID:?QUALYS_ACTIVATION_ID must be set}"
-QUALYS_AGENT_URL="${QUALYS_AGENT_URL:?QUALYS_AGENT_URL must be set}"
 QUALYS_SERVER_URI="${QUALYS_SERVER_URI:-}"
 PATCH_WAIT_TIMEOUT="${PATCH_WAIT_TIMEOUT:-600}"
 PATCH_POLL_INTERVAL="${PATCH_POLL_INTERVAL:-30}"
 
-echo "==> Phase 1: Install Qualys Cloud Agent"
-
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENT_PKG="/tmp/qualys-cloud-agent"
 
-if [[ "${QUALYS_AGENT_URL}" == s3://* ]]; then
-    aws s3 cp "${QUALYS_AGENT_URL}" "${AGENT_PKG}"
-else
-    curl -sSfL "${QUALYS_AGENT_URL}" -o "${AGENT_PKG}"
-fi
+echo "==> Phase 1: Download and install Qualys Cloud Agent"
+bash "${SCRIPT_DIR}/download-cloud-agent.sh"
 
 if command -v dpkg &> /dev/null; then
-    echo "==> Installing Cloud Agent (Debian/Ubuntu)"
     sudo dpkg --install "${AGENT_PKG}"
 elif command -v rpm &> /dev/null; then
-    echo "==> Installing Cloud Agent (RHEL/Amazon Linux)"
     sudo rpm -ivh "${AGENT_PKG}"
 else
     echo "ERROR: No supported package manager found"
     exit 1
 fi
-
 rm -f "${AGENT_PKG}"
 
 echo "==> Phase 2: Activate Cloud Agent"

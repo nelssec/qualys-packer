@@ -3,18 +3,14 @@ set -euo pipefail
 
 QUALYS_CUSTOMER_ID="${QUALYS_CUSTOMER_ID:?QUALYS_CUSTOMER_ID must be set}"
 QUALYS_ACTIVATION_ID="${QUALYS_ACTIVATION_ID:?QUALYS_ACTIVATION_ID must be set}"
-QUALYS_AGENT_URL="${QUALYS_AGENT_URL:?QUALYS_AGENT_URL must be set}"
 QUALYS_SERVER_URI="${QUALYS_SERVER_URI:-}"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+AGENT_PKG="/tmp/qualys-cloud-agent"
 
 echo "==> Installing Qualys Cloud Agent (GoldenImage mode)"
 
-AGENT_PKG="/tmp/qualys-cloud-agent"
-
-if [[ "${QUALYS_AGENT_URL}" == s3://* ]]; then
-    aws s3 cp "${QUALYS_AGENT_URL}" "${AGENT_PKG}"
-else
-    curl -sSfL "${QUALYS_AGENT_URL}" -o "${AGENT_PKG}"
-fi
+bash "${SCRIPT_DIR}/download-cloud-agent.sh"
 
 echo "==> Blocking Qualys platform connectivity during install"
 echo "127.0.0.1 qualysguard.qualys.com" | sudo tee -a /etc/hosts > /dev/null
@@ -27,7 +23,6 @@ else
     echo "ERROR: No supported package manager found"
     exit 1
 fi
-
 rm -f "${AGENT_PKG}"
 
 echo "==> Configuring Cloud Agent"
