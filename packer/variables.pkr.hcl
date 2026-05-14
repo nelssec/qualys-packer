@@ -207,8 +207,8 @@ variable "qualys_api_password" {
 
 variable "qualys_api_url" {
   type        = string
-  default     = "https://qualysapi.qg1.apps.qualys.ca"
-  description = "Qualys API base URL for Cloud Agent download"
+  default     = ""
+  description = "Qualys API base URL for Cloud Agent download (e.g. https://qualysapi.qg2.apps.qualys.com)"
 }
 
 variable "qualys_server_uri" {

@@ -21,8 +21,8 @@ if [[ "${QUALYS_AGENT_URL}" == "api" ]]; then
 
     ARCH=$(uname -m)
     case "${ARCH}" in
-        x86_64|amd64) API_ARCH="X_86_64" ;;
-        aarch64|arm64) API_ARCH="AARCH_64" ;;
+        x86_64|amd64) API_ARCH="X_64" ;;
+        aarch64|arm64) API_ARCH="ARM_64" ;;
         *) echo "ERROR: Unsupported architecture: ${ARCH}"; exit 1 ;;
     esac
 
@@ -31,8 +31,9 @@ if [[ "${QUALYS_AGENT_URL}" == "api" ]]; then
 
     HTTP_CODE=$(curl -sSf -o "${AGENT_PKG}" -w "%{http_code}" \
         -u "${QUALYS_API_USERNAME}:${QUALYS_API_PASSWORD}" \
-        -H "Content-Type: application/xml" \
-        -d "<DownloadBinary><platform>LINUX</platform><architecture>${API_ARCH}</architecture></DownloadBinary>" \
+        -H "Content-Type: text/xml" \
+        -H "X-Requested-With: curl" \
+        -d "<?xml version=\"1.0\" encoding=\"UTF-8\"?><ServiceRequest><data><DownloadBinary><platform>LINUX</platform><architecture>${API_ARCH}</architecture></DownloadBinary></data></ServiceRequest>" \
         "${QUALYS_API_URL}/qps/rest/1.0/download/ca/downloadbinary" 2>&1) || true
 
     if [[ ! -f "${AGENT_PKG}" ]] || [[ $(stat -f%z "${AGENT_PKG}" 2>/dev/null || stat -c%s "${AGENT_PKG}" 2>/dev/null) -lt 1000 ]]; then
