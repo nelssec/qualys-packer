@@ -1,11 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-QUALYS_CUSTOMER_ID="${QUALYS_CUSTOMER_ID:?QUALYS_CUSTOMER_ID must be set}"
-QUALYS_ACTIVATION_ID="${QUALYS_ACTIVATION_ID:?QUALYS_ACTIVATION_ID must be set}"
+QUALYS_CUSTOMER_ID="${QUALYS_CUSTOMER_ID:-}"
+QUALYS_ACTIVATION_ID="${QUALYS_ACTIVATION_ID:-}"
 QUALYS_SERVER_URI="${QUALYS_SERVER_URI:-}"
+QUALYS_GATEWAY_URL="${QUALYS_GATEWAY_URL:-}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ -z "${QUALYS_CUSTOMER_ID}" || -z "${QUALYS_ACTIVATION_ID}" ]]; then
+    echo "==> Auto-resolving Customer ID and Activation ID from API credentials"
+    # shellcheck disable=SC1091
+    source "${SCRIPT_DIR}/resolve-qualys-ids.sh"
+fi
 AGENT_PKG="/tmp/qualys-cloud-agent"
 
 echo "==> Installing Qualys Cloud Agent (GoldenImage mode)"

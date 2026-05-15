@@ -71,6 +71,7 @@ build {
         "QUALYS_API_USERNAME=${var.qualys_api_username}",
         "QUALYS_API_PASSWORD=${var.qualys_api_password}",
         "QUALYS_API_URL=${var.qualys_api_url}",
+        "QUALYS_GATEWAY_URL=${var.qualys_gateway_url}",
         "QUALYS_SERVER_URI=${var.qualys_server_uri}",
         "PATCH_WAIT_TIMEOUT=${var.patch_wait_timeout}",
       ]
@@ -142,6 +143,7 @@ build {
         "QUALYS_API_USERNAME=${var.qualys_api_username}",
         "QUALYS_API_PASSWORD=${var.qualys_api_password}",
         "QUALYS_API_URL=${var.qualys_api_url}",
+        "QUALYS_GATEWAY_URL=${var.qualys_gateway_url}",
         "QUALYS_SERVER_URI=${var.qualys_server_uri}",
       ]
     }

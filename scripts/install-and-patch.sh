@@ -1,14 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-QUALYS_CUSTOMER_ID="${QUALYS_CUSTOMER_ID:?QUALYS_CUSTOMER_ID must be set}"
-QUALYS_ACTIVATION_ID="${QUALYS_ACTIVATION_ID:?QUALYS_ACTIVATION_ID must be set}"
+QUALYS_CUSTOMER_ID="${QUALYS_CUSTOMER_ID:-}"
+QUALYS_ACTIVATION_ID="${QUALYS_ACTIVATION_ID:-}"
 QUALYS_SERVER_URI="${QUALYS_SERVER_URI:-}"
+QUALYS_GATEWAY_URL="${QUALYS_GATEWAY_URL:-}"
 PATCH_WAIT_TIMEOUT="${PATCH_WAIT_TIMEOUT:-600}"
 PATCH_POLL_INTERVAL="${PATCH_POLL_INTERVAL:-30}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENT_PKG="/tmp/qualys-cloud-agent"
+
+if [[ -z "${QUALYS_CUSTOMER_ID}" || -z "${QUALYS_ACTIVATION_ID}" ]]; then
+    echo "==> Auto-resolving Customer ID and Activation ID from API credentials"
+    # shellcheck disable=SC1091
+    source "${SCRIPT_DIR}/resolve-qualys-ids.sh"
+fi
 
 echo "==> Phase 1: Download and install Qualys Cloud Agent"
 bash "${SCRIPT_DIR}/download-cloud-agent.sh"

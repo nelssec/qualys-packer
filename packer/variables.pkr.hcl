@@ -211,6 +211,12 @@ variable "qualys_api_url" {
   description = "Qualys API base URL for Cloud Agent download (e.g. https://qualysapi.qg2.apps.qualys.com)"
 }
 
+variable "qualys_gateway_url" {
+  type        = string
+  default     = ""
+  description = "Qualys Gateway URL for JWT auth and activation key lookup (e.g. https://gateway.qg2.apps.qualys.com)"
+}
+
 variable "qualys_server_uri" {
   type        = string
   default     = ""
