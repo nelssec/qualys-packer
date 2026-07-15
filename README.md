@@ -1,5 +1,7 @@
 # Golden AMI Pipeline with Qualys QScanner
 
+> ⚠️ **Unofficial project.** This is a personal project and is not affiliated with, endorsed by, or supported by Qualys, Inc.
+
 Build hardened, vulnerability-scanned Amazon Machine Images using HashiCorp Packer and Qualys QScanner. Every AMI is scanned for OS vulnerabilities, software composition risks, secrets, and misconfigurations before it becomes available for use.
 
 ## How It Works
